@@ -1,0 +1,67 @@
+<div class="admin-card">
+    <div class="card-header">
+        <h2>📝 文章列表</h2>
+        <div>
+            <a href="/admin/posts/trash" class="btn btn-secondary btn-sm">🗑️ 回收站</a>
+            <a href="/admin/posts/create" class="btn btn-primary btn-sm">+ 新建文章</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>分类</th>
+                    <th>状态</th>
+                    <th>发布时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($posts as $p): ?>
+                <tr>
+                    <td>
+                        <?= $p['id'] ?>
+                    </td>
+                    <td><a href="/admin/posts/edit/<?= $p['id'] ?>">
+                            <?= htmlspecialchars(mb_substr($p['title'], 0, 40)) ?>
+                        </a></td>
+                    <td>
+                        <?= htmlspecialchars($p['category_name'] ?? '-') ?>
+                    </td>
+                    <td><span class="badge badge-<?= $p['status'] ?>">
+                            <?= $p['status'] === 'published' ? '已发布' : '草稿' ?>
+                        </span></td>
+                    <td>
+                        <?= date('Y-m-d', strtotime($p['created_at'])) ?>
+                    </td>
+                    <td class="actions">
+                        <a href="/post/index/view/<?= $p['id'] ?>" class="btn btn-secondary btn-sm"
+                            target="_blank">查看</a>
+                        <a href="/admin/posts/edit/<?= $p['id'] ?>" class="btn btn-primary btn-sm">编辑</a>
+                        <a href="/admin/posts/delete/<?= $p['id'] ?>" class="btn btn-danger btn-sm"
+                            onclick="return confirm('确定移至回收站？')">删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <?php if ($totalPages > 1): ?>
+        <nav class="pagination">
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <?php if ($i == $page): ?>
+            <span class="current">
+                <?= $i ?>
+            </span>
+            <?php else: ?>
+            <a href="/admin/posts?page=<?= $i ?><?= $status ? " &status={$status}" : '' ?>">
+                <?= $i ?>
+            </a>
+            <?php endif; ?>
+            <?php endfor; ?>
+        </nav>
+        <?php endif; ?>
+    </div>
+</div>

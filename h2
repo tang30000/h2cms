@@ -1,0 +1,421 @@
+#!/usr/bin/env php
+<?php
+/**
+ * H2PHP CLI 工具
+ * 用法：php h2 <命令> [参数]
+ *
+ * 命令列表：
+ *   make:controller <a/b>   创建控制器文件
+ *   make:view <a/b/c>       创建视图模板
+ *   migrate                 运行未执行的迁移
+ *   migrate:rollback        回滚上一批迁移
+ *   migrate:status          显示迁移状态
+ */
+
+define('ROOT', __DIR__);
+
+$command = $argv[1] ?? 'help';
+$arg     = $argv[2] ?? '';
+
+switch ($command) {
+    case 'make:controller': makeController($arg); break;
+    case 'make:view':       makeView($arg);       break;
+    case 'make:job':        makeJob($arg);        break;
+    case 'make:task':       makeTask($arg);       break;
+    case 'migrate':                 migrate();            break;
+    case 'migrate:rollback':        migrateRollback();    break;
+    case 'migrate:status':          migrateStatus();      break;
+    case 'queue:work':              queueWork($argv);     break;
+    case 'queue:status':            queueStatus();        break;
+    case 'queue:clear':             queueClear();         break;
+    case 'schedule:run':            scheduleRun();        break;
+    case 'schedule:list':           scheduleList();       break;
+    case 'test':                    runTests($argv);      break;
+    default:                        showHelp();           break;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// make:controller
+// ─────────────────────────────────────────────────────────────────────────────
+
+function makeController(string $arg): void
+{
+    if (!$arg) {
+        fail("用法: php h2 make:controller <目录/文件名>  例：php h2 make:controller user/login");
+    }
+    $parts = explode('/', trim($arg, '/'));
+    if (count($parts) < 2) {
+        fail("参数格式：<目录/文件名>  例：user/login");
+    }
+    [$dir, $file] = [$parts[0], $parts[1]];
+    $path = ROOT . "/app/{$dir}/{$file}.php";
+
+    if (file_exists($path)) {
+        fail("文件已存在：app/{$dir}/{$file}.php");
+    }
+
+    @mkdir(dirname($path), 0755, true);
+
+    $content = <<<PHP
+<?php
+class main extends \\Lib\\Core
+{
+    public function index(): void
+    {
+        \$this->render();
+    }
+}
+PHP;
+
+    file_put_contents($path, $content);
+    ok("已创建控制器：app/{$dir}/{$file}.php");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// make:view
+// ─────────────────────────────────────────────────────────────────────────────
+
+function makeView(string $arg): void
+{
+    if (!$arg) {
+        fail("用法: php h2 make:view <模块/功能/方法>  例：php h2 make:view user/login/index");
+    }
+    $parts = explode('/', trim($arg, '/'));
+    $path  = ROOT . '/views/' . implode('/', $parts) . '.html';
+
+    if (file_exists($path)) {
+        fail("文件已存在：views/{$arg}.html");
+    }
+
+    @mkdir(dirname($path), 0755, true);
+
+    $title = end($parts);
+    $content = <<<HTML
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{$title}</title>
+</head>
+<body>
+    <h1>{$title}</h1>
+</body>
+</html>
+HTML;
+
+    file_put_contents($path, $content);
+    ok("已创建视图：views/{$arg}.html");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// migrate
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getDB(): PDO
+{
+    $cfg = require ROOT . '/config/config.php';
+    $db  = $cfg['db'];
+    $pdo = new PDO($db['dsn'], $db['user'], $db['password'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    ]);
+    // 确保迁移记录表存在
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `_migrations` (
+        `id`       INT AUTO_INCREMENT PRIMARY KEY,
+        `name`     VARCHAR(255) NOT NULL UNIQUE,
+        `batch`    INT NOT NULL DEFAULT 1,
+        `ran_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    return $pdo;
+}
+
+function getMigrationFiles(): array
+{
+    $dir   = ROOT . '/migrations';
+    if (!is_dir($dir)) { return []; }
+    $files = glob($dir . '/*.php');
+    sort($files);
+    return $files;
+}
+
+function getRanMigrations(PDO $pdo): array
+{
+    $stmt = $pdo->query("SELECT name FROM `_migrations` ORDER BY id");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+
+function migrate(): void
+{
+    $pdo   = getDB();
+    $ran   = getRanMigrations($pdo);
+    $files = getMigrationFiles();
+
+    if (!$files) {
+        info("migrations/ 目录为空，无可执行的迁移。");
+        return;
+    }
+
+    $batch   = (int)($pdo->query("SELECT COALESCE(MAX(batch),0) FROM `_migrations`")->fetchColumn()) + 1;
+    $pending = array_filter($files, fn($f) => !in_array(basename($f, '.php'), $ran));
+
+    if (!$pending) {
+        info("所有迁移均已执行，无需操作。");
+        return;
+    }
+
+    foreach ($pending as $file) {
+        $name = basename($file, '.php');
+        $m    = require $file;
+        info("执行：{$name}");
+        $m->up($pdo);
+        $pdo->prepare("INSERT INTO `_migrations` (name, batch) VALUES (?, ?)")->execute([$name, $batch]);
+        ok("  ✓ {$name}");
+    }
+}
+
+function migrateRollback(): void
+{
+    $pdo   = getDB();
+    $batch = (int)$pdo->query("SELECT COALESCE(MAX(batch),0) FROM `_migrations`")->fetchColumn();
+
+    if ($batch === 0) {
+        info("没有可回滚的迁移。");
+        return;
+    }
+
+    $stmt  = $pdo->prepare("SELECT name FROM `_migrations` WHERE batch=? ORDER BY id DESC");
+    $stmt->execute([$batch]);
+    $names = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    foreach ($names as $name) {
+        $file = ROOT . "/migrations/{$name}.php";
+        if (!file_exists($file)) {
+            fail("迁移文件不存在：{$file}");
+        }
+        $m = require $file;
+        info("回滚：{$name}");
+        $m->down($pdo);
+        $pdo->prepare("DELETE FROM `_migrations` WHERE name=?")->execute([$name]);
+        ok("  ✓ {$name} 已回滚");
+    }
+}
+
+function migrateStatus(): void
+{
+    $pdo   = getDB();
+    $ran   = array_flip(getRanMigrations($pdo));
+    $files = getMigrationFiles();
+
+    if (!$files) {
+        info("migrations/ 目录为空。");
+        return;
+    }
+
+    printf("%-5s %-50s %s\n", "状态", "迁移名称", "批次");
+    echo str_repeat('-', 70) . "\n";
+    foreach ($files as $file) {
+        $name  = basename($file, '.php');
+        $done  = isset($ran[$name]);
+        $batch = $done ? $pdo->query("SELECT batch FROM `_migrations` WHERE name='" . addslashes($name) . "'")->fetchColumn() : '-';
+        printf("%-5s %-50s %s\n", $done ? '✓' : '·', $name, $batch);
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// make:job
+// ──────────────────────────────────────────────────────────────────────────────
+
+function makeJob(string $name): void
+{
+    if (!$name) {
+        fail("用法: php h2 make:job <类名>  例：php h2 make:job SendWelcomeEmail");
+    }
+    $path = ROOT . "/app/jobs/{$name}.php";
+    if (file_exists($path)) {
+        fail("文件已存在：app/jobs/{$name}.php");
+    }
+    @mkdir(dirname($path), 0755, true);
+    $content = <<<PHP
+<?php
+class {$name}
+{
+    public function handle(array \$payload): void
+    {
+        // TODO: 实现任务逻辑
+    }
+}
+PHP;
+    file_put_contents($path, $content);
+    ok("已创建 Job：app/jobs/{$name}.php");
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// queue:work
+// ──────────────────────────────────────────────────────────────────────────────
+
+function queueWork(array $argv): void
+{
+    $cfg    = require ROOT . '/config/config.php';
+    $once   = in_array('--once', $argv);
+    $sleep  = 3; // 无任务时等待秒数
+
+    info($once ? "处理一个任务后退出..." : "Queue Worker 启动，Ctrl+C 退出");
+
+    while (true) {
+        try {
+            $processed = \Lib\Queue::processOne($cfg);
+        } catch (\Throwable $e) {
+            fail("Worker 错误：" . $e->getMessage());
+        }
+
+        if ($once) break;
+        if (!$processed) sleep($sleep);
+    }
+}
+
+function queueStatus(): void
+{
+    $cfg  = require ROOT . '/config/config.php';
+    $stat = \Lib\Queue::status($cfg);
+    printf("%-15s %s\n", "状态", "数量");
+    echo str_repeat('-', 25) . "\n";
+    foreach ($stat as $s => $n) {
+        printf("%-15s %d\n", $s, $n);
+    }
+}
+
+function queueClear(): void
+{
+    $cfg = require ROOT . '/config/config.php';
+    $n   = \Lib\Queue::clear($cfg);
+    ok("已清除 {$n} 条已完成/失败任务");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// make:task
+// ─────────────────────────────────────────────────────────────────────────────
+
+function makeTask(string $name): void
+{
+    if (!$name) {
+        fail("用法: php h2 make:task <类名>  例：php h2 make:task CleanExpiredTokens");
+    }
+    $path = ROOT . "/app/tasks/{$name}.php";
+    if (file_exists($path)) {
+        fail("文件已存在：app/tasks/{$name}.php");
+    }
+    @mkdir(dirname($path), 0755, true);
+    $content = <<<PHP
+<?php
+class {$name}
+{
+    public function handle(): void
+    {
+        // TODO: 实现定时任务逻辑
+    }
+}
+PHP;
+    file_put_contents($path, $content);
+    ok("已创建 Task：app/tasks/{$name}.php");
+    info("在 app/schedules.php 中注册：\\\$s->call('{$name}')->daily();");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// schedule:run / schedule:list
+// ─────────────────────────────────────────────────────────────────────────────
+
+function loadScheduler(): \Lib\Scheduler
+{
+    require LIB . '/Scheduler.php';
+    $scheduler = new \Lib\Scheduler();
+    $file = ROOT . '/app/schedules.php';
+    if (file_exists($file)) {
+        $fn = require $file;
+        if (is_callable($fn)) $fn($scheduler);
+    }
+    return $scheduler;
+}
+
+function scheduleRun(): void
+{
+    define('APP', ROOT . '/app');
+    define('LIB', ROOT . '/lib');
+    require LIB . '/Scheduler.php';
+    $scheduler = loadScheduler();
+    $scheduler->runDue();
+}
+
+function scheduleList(): void
+{
+    define('APP', ROOT . '/app');
+    define('LIB', ROOT . '/lib');
+    require LIB . '/Scheduler.php';
+    $scheduler = loadScheduler();
+    $tasks = $scheduler->listAll();
+
+    if (!$tasks) {
+        info("app/schedules.php 中没有任何注册的任务。");
+        return;
+    }
+
+    printf("%-30s %-20s %s\n", "任务名称", "Cron 表达式", "描述");
+    echo str_repeat('-', 70) . "\n";
+    foreach ($tasks as $t) {
+        printf("%-30s %-20s %s\n", $t->name, $t->getExpression(), $t->description);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 辅助
+// ─────────────────────────────────────────────────────────────────────────────
+
+function runTests(array $argv): void
+{
+    $vendor = ROOT . '/vendor/bin/phpunit';
+    if (!file_exists($vendor)) {
+        fail("PHPUnit 未安装，请先运行：composer install");
+    }
+    // 透传额外参数，如 --filter / --testsuite / --coverage-text
+    $extra = array_slice($argv, 2);
+    $cmd   = 'php ' . escapeshellarg($vendor) . ' ' . implode(' ', array_map('escapeshellarg', $extra));
+    passthru($cmd);
+}
+
+function showHelp(): void
+{
+    echo <<<HELP
+H2PHP CLI 工具
+
+代码生成：
+  php h2 make:controller <目录/文件名>   创建控制器
+  php h2 make:view <模块/功能/方法>      创建视图模板
+  php h2 make:job  <类名>               创建 Job 模板
+  php h2 make:task <类名>               创建定时任务模板
+
+数据库迁移：
+  php h2 migrate                         运行未执行的迁移
+  php h2 migrate:rollback                回滚上一批迁移
+  php h2 migrate:status                  显示迁移状态
+
+队列：
+  php h2 queue:work                      启动 Worker（持续运行）
+  php h2 queue:work --once               处理一个任务就退出（适合 cron）
+  php h2 queue:status                    查看各状态任务数量
+  php h2 queue:clear                     清除已完成/失败任务记录
+
+定时任务（Scheduler）：
+  php h2 schedule:run                    执行所有到期的定时任务
+  php h2 schedule:list                   列出所有已注册的定时任务
+
+测试：
+  php h2 test [phpunit 参数]             运行测试
+
+系统 cron 只需一条（每分钟执行一次）：
+  * * * * * php /path/to/h2 schedule:run
+
+HELP;
+}
+
+function ok(string $msg): void  { echo "\033[32m{$msg}\033[0m\n"; }
+function info(string $msg): void { echo "\033[33m{$msg}\033[0m\n"; }
+function fail(string $msg): void { echo "\033[31m错误：{$msg}\033[0m\n"; exit(1); }

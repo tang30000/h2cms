@@ -1,0 +1,92 @@
+<div class="stats-grid">
+    <div class="stat-card blue">
+        <div class="stat-label">📝 文章总数</div>
+        <div class="stat-value">
+            <?= $stats['posts'] ?>
+        </div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-label">💬 评论总数</div>
+        <div class="stat-value">
+            <?= $stats['comments'] ?>
+        </div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-label">⏳ 待审评论</div>
+        <div class="stat-value">
+            <?= $stats['pending'] ?>
+        </div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-label">👤 用户数</div>
+        <div class="stat-value">
+            <?= $stats['users'] ?>
+        </div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+    <div class="admin-card">
+        <div class="card-header">
+            <h2>📝 最近文章</h2>
+        </div>
+        <div class="card-body">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>标题</th>
+                        <th>状态</th>
+                        <th>日期</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($recentPosts as $p): ?>
+                    <tr>
+                        <td><a href="/admin/posts/edit/<?= $p['id'] ?>">
+                                <?= htmlspecialchars(mb_substr($p['title'], 0, 30)) ?>
+                            </a></td>
+                        <td><span class="badge badge-<?= $p['status'] ?>">
+                                <?= $p['status'] === 'published' ? '已发布' : '草稿' ?>
+                            </span></td>
+                        <td>
+                            <?= date('m-d', strtotime($p['created_at'])) ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2>💬 最近评论</h2>
+        </div>
+        <div class="card-body">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>作者</th>
+                        <th>内容</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($recentComments as $c): ?>
+                    <tr>
+                        <td>
+                            <?= htmlspecialchars($c['author_name']) ?>
+                        </td>
+                        <td>
+                            <?= htmlspecialchars(mb_substr($c['body'], 0, 20)) ?>
+                        </td>
+                        <td><span class="badge badge-<?= $c['approved'] ? 'approved' : 'pending' ?>">
+                                <?= $c['approved'] ? '已审核' : '待审' ?>
+                            </span></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

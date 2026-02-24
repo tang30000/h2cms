@@ -1,0 +1,12 @@
+/cache/*
+!/cache/.gitkeep
+/logs/*
+!/logs/.gitkeep
+/static/uploads/*
+!/static/uploads/.gitkeep
+config/config.local.php
+vendor/
+_init_db.php
+.idea/
+.vscode/
+*.swp

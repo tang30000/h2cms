@@ -1,0 +1,53 @@
+<div class="admin-card">
+    <div class="card-header">
+        <h2>✏️ 编辑文章</h2>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/admin/posts/update/<?= $post['id'] ?>" enctype="multipart/form-data">
+            <?= $csrfField ?>
+            <div class="form-group">
+                <label>标题</label>
+                <input type="text" name="title" class="form-input" value="<?= htmlspecialchars($post['title']) ?>"
+                    required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>分类</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">-- 选择分类 --</option>
+                        <?php foreach ($categories as $cat): ?>
+                        <option value="<?= $cat['id'] ?>" <?=$post['category_id']==$cat['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($cat['name']) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select name="status" class="form-select">
+                        <option value="draft" <?=$post['status']==='draft' ? 'selected' : '' ?>>草稿</option>
+                        <option value="published" <?=$post['status']==='published' ? 'selected' : '' ?>>发布</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>特色图片</label>
+                <?php if ($post['featured_image']): ?>
+                <p><img src="/<?= htmlspecialchars($post['featured_image']) ?>"
+                        style="max-width:200px;border-radius:4px;margin-bottom:.5rem"></p>
+                <?php endif; ?>
+                <input type="file" name="featured_image" class="form-input" accept="image/*">
+                <p class="form-hint">不选择则保留原图</p>
+            </div>
+            <div class="form-group">
+                <label>正文</label>
+                <textarea name="body" class="form-textarea" rows="12"
+                    required><?= htmlspecialchars($post['body']) ?></textarea>
+            </div>
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">更新</button>
+                <a href="/admin/posts" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>

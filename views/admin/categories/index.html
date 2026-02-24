@@ -1,0 +1,41 @@
+<div class="admin-card">
+    <div class="card-header">
+        <h2>📁 分类管理</h2>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/admin/categories/store" style="display:flex;gap:.5rem;margin-bottom:1.5rem">
+            <?= $csrfField ?>
+            <input type="text" name="name" class="form-input" placeholder="新分类名称..." required style="max-width:300px">
+            <button type="submit" class="btn btn-primary btn-sm">添加分类</button>
+        </form>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>Slug</th>
+                    <th>文章数</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($categories as $c): ?>
+                <tr>
+                    <td>
+                        <?= $c['id'] ?>
+                    </td>
+                    <td>
+                        <?= htmlspecialchars($c['name']) ?>
+                    </td>
+                    <td><code><?= htmlspecialchars($c['slug']) ?></code></td>
+                    <td>
+                        <?= $c['post_count'] ?>
+                    </td>
+                    <td><a href="/admin/categories/delete/<?= $c['id'] ?>" class="btn btn-danger btn-sm"
+                            onclick="return confirm('确定删除此分类？')">删除</a></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>

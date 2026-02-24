@@ -1,0 +1,42 @@
+<div class="admin-card">
+    <div class="card-header">
+        <h2>🗑️ 回收站</h2>
+        <a href="/admin/posts" class="btn btn-secondary btn-sm">← 返回文章列表</a>
+    </div>
+    <div class="card-body">
+        <?php if (empty($posts)): ?>
+        <p style="color:var(--text-light);padding:1rem 0">回收站空空如也 🎉</p>
+        <?php else: ?>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>删除时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($posts as $p): ?>
+                <tr>
+                    <td>
+                        <?= $p['id'] ?>
+                    </td>
+                    <td>
+                        <?= htmlspecialchars($p['title']) ?>
+                    </td>
+                    <td>
+                        <?= $p['deleted_at'] ?>
+                    </td>
+                    <td class="actions">
+                        <a href="/admin/posts/restore/<?= $p['id'] ?>" class="btn btn-success btn-sm">恢复</a>
+                        <a href="/admin/posts/forceDelete/<?= $p['id'] ?>" class="btn btn-danger btn-sm"
+                            onclick="return confirm('彻底删除？此操作不可恢复！')">彻底删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+    </div>
+</div>

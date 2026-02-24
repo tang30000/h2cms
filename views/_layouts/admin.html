@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <?= $pageTitle ?? '管理后台' ?> - H2CMS Admin
+    </title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+
+<body>
+    <div class="admin-layout">
+        <?php $this->partial('admin-nav') ?>
+        <div class="admin-main">
+            <div class="admin-header">
+                <h1>
+                    <?= $pageTitle ?? '管理后台' ?>
+                </h1>
+                <div class="user-info">
+                    👤
+                    <?= htmlspecialchars($_SESSION['user']['username'] ?? 'Admin') ?>
+                    <a href="/user/login/logout" style="color:#ef4444;font-size:.85rem">退出</a>
+                </div>
+            </div>
+            <div class="admin-body">
+                <?php if (!empty($_SESSION['_flash'])): ?>
+                <?php $flash = $_SESSION['_flash']; unset($_SESSION['_flash']); ?>
+                <div class="alert alert-<?= $flash['key'] ?>">
+                    <?= htmlspecialchars($flash['msg']) ?>
+                </div>
+                <?php endif; ?>
+
+                <?= $content ?>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

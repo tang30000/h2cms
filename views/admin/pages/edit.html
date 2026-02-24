@@ -1,0 +1,33 @@
+<div class="admin-card">
+    <div class="card-header">
+        <h2>✏️ 编辑页面</h2>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/admin/pages/update/<?= $pageData['id'] ?>">
+            <?= $csrfField ?>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" name="title" class="form-input"
+                        value="<?= htmlspecialchars($pageData['title']) ?>" required>
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select name="status" class="form-select">
+                        <option value="draft" <?=$pageData['status']==='draft' ? 'selected' : '' ?>>草稿</option>
+                        <option value="published" <?=$pageData['status']==='published' ? 'selected' : '' ?>>发布</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>正文</label>
+                <textarea name="body" class="form-textarea" rows="10"
+                    required><?= htmlspecialchars($pageData['body']) ?></textarea>
+            </div>
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">更新</button>
+                <a href="/admin/pages" class="btn btn-secondary">取消</a>
+            </div>
+        </form>
+    </div>
+</div>

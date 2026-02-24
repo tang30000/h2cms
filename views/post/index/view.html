@@ -1,0 +1,90 @@
+<div class="page-grid">
+    <div class="posts-main">
+        <article class="post-detail">
+            <?php if ($post['featured_image']): ?>
+            <img src="/<?= htmlspecialchars($post['featured_image']) ?>" alt="" class="featured-image">
+            <?php endif; ?>
+
+            <h1>
+                <?= htmlspecialchars($post['title']) ?>
+            </h1>
+
+            <div class="post-meta">
+                <span>📅
+                    <?= date('Y-m-d H:i', strtotime($post['created_at'])) ?>
+                </span>
+                <?php if ($category): ?>
+                <a href="/?cat=<?= $category['id'] ?>" class="category">
+                    <?= htmlspecialchars($category['name']) ?>
+                </a>
+                <?php endif; ?>
+            </div>
+
+            <div class="post-body">
+                <?= $post['body'] ?>
+            </div>
+        </article>
+
+        <!-- 评论列表 -->
+        <div class="comments-section post-detail" style="margin-top:1.5rem">
+            <h3>💬 评论 (
+                <?= count($comments) ?>)
+            </h3>
+
+            <?php if (empty($comments)): ?>
+            <p style="color:var(--text-light);padding:1rem 0">暂无评论，来说两句吧！</p>
+            <?php endif; ?>
+
+            <?php foreach ($comments as $c): ?>
+            <div class="comment-item">
+                <span class="comment-author">
+                    <?= htmlspecialchars($c['author_name']) ?>
+                </span>
+                <span class="comment-date">
+                    <?= date('Y-m-d H:i', strtotime($c['created_at'])) ?>
+                </span>
+                <p class="comment-body">
+                    <?= nl2br(htmlspecialchars($c['body'])) ?>
+                </p>
+            </div>
+            <?php endforeach; ?>
+
+            <!-- 评论表单 -->
+            <div class="comment-form">
+                <h3>✍️ 发表评论</h3>
+                <form method="POST" action="/post/index/comment/<?= $post['id'] ?>">
+                    <?= $csrfField ?>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>昵称 *</label>
+                            <input type="text" name="author_name" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label>邮箱（选填）</label>
+                            <input type="email" name="author_email" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>评论内容 *</label>
+                        <textarea name="body" class="form-textarea" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">提交评论</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-widget">
+            <h3>🔗 返回</h3>
+            <ul>
+                <li><a href="/">← 返回首页</a></li>
+                <?php if ($category): ?>
+                <li><a href="/?cat=<?= $category['id'] ?>">📁
+                        <?= htmlspecialchars($category['name']) ?>
+                    </a></li>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </aside>
+</div>

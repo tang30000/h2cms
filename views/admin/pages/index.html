@@ -1,0 +1,42 @@
+<div class="admin-card">
+    <div class="card-header">
+        <h2>📄 页面管理</h2>
+        <a href="/admin/pages/create" class="btn btn-primary btn-sm">+ 新建页面</a>
+    </div>
+    <div class="card-body">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>Slug</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($pages as $p): ?>
+                <tr>
+                    <td>
+                        <?= $p['id'] ?>
+                    </td>
+                    <td><a href="/admin/pages/edit/<?= $p['id'] ?>">
+                            <?= htmlspecialchars($p['title']) ?>
+                        </a></td>
+                    <td><code><?= htmlspecialchars($p['slug']) ?></code></td>
+                    <td><span class="badge badge-<?= $p['status'] ?>">
+                            <?= $p['status'] === 'published' ? '已发布' : '草稿' ?>
+                        </span></td>
+                    <td class="actions">
+                        <a href="/page/index/view/<?= $p['slug'] ?>" class="btn btn-secondary btn-sm"
+                            target="_blank">查看</a>
+                        <a href="/admin/pages/edit/<?= $p['id'] ?>" class="btn btn-primary btn-sm">编辑</a>
+                        <a href="/admin/pages/delete/<?= $p['id'] ?>" class="btn btn-danger btn-sm"
+                            onclick="return confirm('确定删除？')">删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>

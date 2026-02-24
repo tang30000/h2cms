@@ -1,0 +1,51 @@
+<div class="admin-card">
+    <div class="card-header">
+        <h2>💬 评论管理</h2>
+    </div>
+    <div class="card-body">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>作者</th>
+                    <th>内容</th>
+                    <th>文章</th>
+                    <th>状态</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($comments as $c): ?>
+                <tr>
+                    <td>
+                        <?= $c['id'] ?>
+                    </td>
+                    <td>
+                        <?= htmlspecialchars($c['author_name']) ?>
+                    </td>
+                    <td>
+                        <?= htmlspecialchars(mb_substr($c['body'], 0, 30)) ?>
+                    </td>
+                    <td><a href="/post/index/view/<?= $c['post_id'] ?>" target="_blank">
+                            <?= htmlspecialchars(mb_substr($c['post_title'], 0, 20)) ?>
+                        </a></td>
+                    <td><span class="badge badge-<?= $c['approved'] ? 'approved' : 'pending' ?>">
+                            <?= $c['approved'] ? '已审核' : '待审' ?>
+                        </span></td>
+                    <td>
+                        <?= date('m-d H:i', strtotime($c['created_at'])) ?>
+                    </td>
+                    <td class="actions">
+                        <?php if (!$c['approved']): ?>
+                        <a href="/admin/comments/approve/<?= $c['id'] ?>" class="btn btn-success btn-sm">通过</a>
+                        <?php endif; ?>
+                        <a href="/admin/comments/delete/<?= $c['id'] ?>" class="btn btn-danger btn-sm"
+                            onclick="return confirm('确定删除？')">删除</a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>

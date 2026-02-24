@@ -1,0 +1,14 @@
+<header class="site-header">
+    <div class="container">
+        <a href="/" class="site-logo"><span>H2</span>CMS</a>
+        <nav class="site-nav">
+            <a href="/">首页</a>
+            <a href="/page/index/view/about">关于</a>
+            <?php if (!empty($_SESSION['user'])): ?>
+            <a href="/admin/dashboard" class="btn-admin">管理后台</a>
+            <?php else: ?>
+            <a href="/user/login">登录</a>
+            <?php endif; ?>
+        </nav>
+    </div>
+</header>
