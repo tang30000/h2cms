@@ -1,7 +1,11 @@
 <?php
 /**
  * 前台首页 — 最新文章列表 + 分页 + 分类侧边栏
+ *
+ * 使用 Pagination 独立分页组件
  */
+use Lib\Pagination;
+
 class main extends \Lib\Core
 {
     public function index(int $page = 1): void
@@ -20,11 +24,16 @@ class main extends \Lib\Core
             $query = $query->where("status='published' AND category_id=?", [$catId]);
         }
 
+        // 使用 Pagination 独立分页器
         $total = $query->count();
+        $pager = new Pagination($total, $page, $perPage);
+
         $posts = $query->order('id ASC')
-            ->limit($perPage, ($page - 1) * $perPage)
+            ->limit($perPage, $pager->offset())
             ->cache(60)
             ->fetchAll();
+
+        $pager->setItems($posts);
 
         // 获取每篇文章的分类名
         foreach ($posts as &$p) {
@@ -38,15 +47,21 @@ class main extends \Lib\Core
         // 侧边栏分类
         $categories = $this->db->table('categories')->order('name')->cache(300)->fetchAll();
 
+        // 构建分页 URL
+        $urlPattern = $keyword ? "/home/index/index/{page}?q={$keyword}" : ($catId ? "/home/index/index/{page}?cat={$catId}" : '/home/index/index/{page}');
+
         $this->layout('front');
         $this->set('title', $keyword ? "搜索: {$keyword}" : '首页');
         $this->setMulti([
             'posts'      => $posts,
             'categories' => $categories,
-            'page'       => $page,
-            'totalPages' => max(1, ceil($total / $perPage)),
+            'pager'      => $pager,
+            'pagerLinks' => $pager->links($urlPattern),
             'keyword'    => $keyword,
             'catId'      => $catId,
+            // 兼容旧视图
+            'page'       => $pager->currentPage(),
+            'totalPages' => $pager->totalPages(),
         ]);
         $this->render();
     }

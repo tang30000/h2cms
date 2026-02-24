@@ -1,14 +1,19 @@
 <?php
 /**
  * 用户登录/注册/登出
+ *
+ * 使用 Auth 组件：密码哈希、Session 管理
  */
+use Lib\Auth;
+
 class main extends \Lib\Core
 {
     protected array $skipBefore = ['index', 'submit', 'register', 'doRegister'];
 
     public function index(): void
     {
-        if (!empty($_SESSION['user'])) {
+        // 已登录直接跳后台
+        if (Auth::check()) {
             $this->redirect('/admin/dashboard');
             return;
         }
@@ -40,19 +45,22 @@ class main extends \Lib\Core
         }
 
         $user = $this->db->table('users')->where('username=?', [$_POST['username']])->fetch();
-        if (!$user || !password_verify($_POST['password'], $user['password'])) {
+
+        // 使用 Auth::verifyPassword() 替代手写 password_verify
+        if (!$user || !Auth::verifyPassword($_POST['password'], $user['password'])) {
             $this->log('warning', '登录失败', ['username' => $_POST['username'], 'ip' => $this->request->ip()]);
             $this->flash('error', '用户名或密码错误');
             $this->redirect('/user/login');
             return;
         }
 
-        $_SESSION['user'] = [
+        // 使用 Auth::login() 写入 Session
+        Auth::login([
             'id'       => $user['id'],
             'username' => $user['username'],
             'email'    => $user['email'],
             'role'     => $user['role'],
-        ];
+        ]);
 
         $this->log('info', '用户登录', ['user_id' => $user['id'], 'ip' => $this->request->ip()]);
         $this->flash('success', '欢迎回来，' . $user['username'] . '！');
@@ -89,10 +97,11 @@ class main extends \Lib\Core
             return;
         }
 
+        // 使用 Auth::hashPassword() 替代手写 password_hash
         $this->db->table('users')->timestamps()->insert([
             'username' => $_POST['username'],
             'email'    => $_POST['email'],
-            'password' => password_hash($_POST['password'], PASSWORD_DEFAULT),
+            'password' => Auth::hashPassword($_POST['password']),
             'role'     => 'user',
         ]);
 
@@ -103,8 +112,11 @@ class main extends \Lib\Core
 
     public function logout(): void
     {
-        $this->log('info', '用户登出', ['user_id' => $_SESSION['user']['id'] ?? 0]);
-        unset($_SESSION['user']);
+        $this->log('info', '用户登出', ['user_id' => Auth::id()]);
+
+        // 使用 Auth::logout() 替代手写 unset
+        Auth::logout();
+
         $this->flash('success', '已退出登录');
         $this->redirect('/');
     }

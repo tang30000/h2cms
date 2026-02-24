@@ -1,7 +1,12 @@
 <?php
 /**
  * 后台文章管理 — CRUD + 上传 + 软删除 + 事务
+ *
+ * 使用 Pagination 分页器、Str 字符串工具
  */
+use Lib\Pagination;
+use Lib\Str;
+
 class main extends \Lib\Core
 {
     protected array $middleware = ['AdminAuth'];
@@ -18,8 +23,10 @@ class main extends \Lib\Core
             $query = $query->where('status=?', [$status]);
         }
 
+        // 使用 Pagination 独立分页器
         $total = $query->count();
-        $posts = $query->order('created_at DESC')->limit($perPage, ($page - 1) * $perPage)->fetchAll();
+        $pager = new Pagination($total, $page, $perPage);
+        $posts = $query->order('created_at DESC')->limit($perPage, $pager->offset())->fetchAll();
 
         // 附加分类名
         foreach ($posts as &$p) {
@@ -30,13 +37,17 @@ class main extends \Lib\Core
         }
         unset($p);
 
+        $urlPattern = $status ? "/admin/posts?page={page}&status={$status}" : '/admin/posts?page={page}';
+
         $this->layout('admin');
         $this->setMulti([
             'pageTitle'  => '文章管理',
             '_path'      => 'admin/posts',
             'posts'      => $posts,
-            'page'       => $page,
-            'totalPages' => max(1, ceil($total / $perPage)),
+            'pager'      => $pager,
+            'pagerLinks' => $pager->links($urlPattern),
+            'page'       => $pager->currentPage(),
+            'totalPages' => $pager->totalPages(),
             'status'     => $status,
         ]);
         $this->render();
@@ -212,11 +223,9 @@ class main extends \Lib\Core
         $this->redirect('/admin/posts/trash');
     }
 
-    /** 生成 slug */
+    /** 生成 slug — 使用 Str::slug() */
     private function makeSlug(string $title): string
     {
-        $slug = preg_replace('/[^a-zA-Z0-9\x{4e00}-\x{9fa5}]+/u', '-', $title);
-        $slug = trim($slug, '-');
-        return mb_substr($slug, 0, 100) . '-' . time();
+        return Str::slug($title) . '-' . time();
     }
 }
