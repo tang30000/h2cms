@@ -26,10 +26,12 @@
             </div>
             <div class="admin-body">
                 <?php if (!empty($_SESSION['_flash'])): ?>
-                <?php $flash = $_SESSION['_flash']; unset($_SESSION['_flash']); ?>
-                <div class="alert alert-<?= $flash['key'] ?>">
-                    <?= htmlspecialchars($flash['msg']) ?>
+                <?php $flashes = $_SESSION['_flash']; unset($_SESSION['_flash']); ?>
+                <?php foreach ($flashes as $type => $msg): ?>
+                <div class="alert alert-<?= $type ?>">
+                    <?= htmlspecialchars($msg) ?>
                 </div>
+                <?php endforeach; ?>
                 <?php endif; ?>
 
                 <?= $content ?>

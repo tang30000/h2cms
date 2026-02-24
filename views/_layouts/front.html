@@ -14,11 +14,13 @@
     <?php $this->partial('front-nav') ?>
 
     <?php if (!empty($_SESSION['_flash'])): ?>
-    <?php $flash = $_SESSION['_flash']; unset($_SESSION['_flash']); ?>
+    <?php $flashes = $_SESSION['_flash']; unset($_SESSION['_flash']); ?>
     <div class="container" style="margin-top:1rem">
-        <div class="alert alert-<?= $flash['key'] ?>">
-            <?= htmlspecialchars($flash['msg']) ?>
+        <?php foreach ($flashes as $type => $msg): ?>
+        <div class="alert alert-<?= $type ?>">
+            <?= htmlspecialchars($msg) ?>
         </div>
+        <?php endforeach; ?>
     </div>
     <?php endif; ?>
 

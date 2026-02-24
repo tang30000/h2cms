@@ -59,6 +59,7 @@ $db->exec("CREATE TABLE IF NOT EXISTS `comments` (
     `body`         TEXT NOT NULL,
     `approved`     TINYINT(1) NOT NULL DEFAULT 0,
     `created_at`   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX `idx_post` (`post_id`),
     INDEX `idx_approved` (`approved`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
