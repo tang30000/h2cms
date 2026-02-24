@@ -4,9 +4,9 @@
  */
 class main extends \Lib\Core
 {
-    public function index(): void
+    public function index(int $page = 1): void
     {
-        $page    = max(1, (int)($this->request->get('page', 1)));
+        $page    = max(1, $page);
         $perPage = 5;
         $keyword = $this->request->get('q', '');
         $catId   = (int)$this->request->get('cat', 0);

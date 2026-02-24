@@ -41,18 +41,12 @@
         <?php if ($totalPages > 1): ?>
         <nav class="pagination">
             <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-            <?php
-                    $params = ['page' => $i];
-                    if ($keyword) $params['q'] = $keyword;
-                    if ($catId) $params['cat'] = $catId;
-                    $qs = http_build_query($params);
-                ?>
             <?php if ($i == $page): ?>
             <span class="current">
                 <?= $i ?>
             </span>
             <?php else: ?>
-            <a href="/?<?= $qs ?>">
+            <a href="/home/index/index/<?= $i ?>">
                 <?= $i ?>
             </a>
             <?php endif; ?>
