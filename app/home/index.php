@@ -21,7 +21,7 @@ class main extends \Lib\Core
         }
 
         $total = $query->count();
-        $posts = $query->order('created_at DESC')
+        $posts = $query->order('id ASC')
             ->limit($perPage, ($page - 1) * $perPage)
             ->cache(60)
             ->fetchAll();
