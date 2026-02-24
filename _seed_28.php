@@ -1,19 +1,10 @@
 <?php
 $pdo = new PDO('mysql:host=localhost;dbname=h2cms;charset=utf8mb4', 'root', 'usbw');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$pdo->exec("SET NAMES utf8mb4");
-
-$cat = $pdo->query("SELECT id FROM categories WHERE slug='tutorial'")->fetch(PDO::FETCH_ASSOC);
-$catId = $cat['id'];
-
-$title   = '第28课：Composer 生态 — 在 H2PHP 中使用第三方库';
-$slug    = 'tutorial-28-composer';
-$excerpt = '通过 Composer 安装 Laravel 组件、PHPMailer、图片处理等第三方库，让轻量框架也能拥有强大的生态。';
 
 $body = <<<'HTML'
-<h2>为什么能用 Composer？</h2>
-<p>H2PHP 的 <code>composer.json</code> 已配置 PSR-4 自动加载，<code>index.php</code> 引入了 <code>vendor/autoload.php</code>。
-所以任何通过 Composer 安装的包都能直接 <code>use</code>，<strong>零额外配置</strong>。</p>
+<h2>Composer 是什么？</h2>
+<p>Composer 是 PHP 的包管理器，类似 Node.js 的 npm、Python 的 pip。它负责下载、更新、自动加载第三方库。</p>
 
 <h2>安装第三方包</h2>
 <pre><code># 在项目根目录执行
@@ -21,20 +12,80 @@ composer require 包名
 
 # 例如
 composer require phpmailer/phpmailer
-composer require intervention/image
 composer require nesbot/carbon
 composer require ramsey/uuid
 </code></pre>
+
+<h2>目录结构</h2>
+<p>安装后的文件全部放在根目录的 <code>vendor/</code> 文件夹下，按 <code>厂商名/包名</code> 分级：</p>
+<pre><code>d:\prg\web\h2php\
+├── app/                    ← 你的业务代码
+├── lib/                    ← 框架内置组件（20个）
+├── config/
+├── vendor/                 ← Composer 管理（自动生成，不要手动修改）
+│   ├── autoload.php        ← 自动加载入口
+│   ├── composer/           ← Composer 自身的加载器
+│   ├── nesbot/
+│   │   └── carbon/         ← Carbon 日期库源码
+│   ├── ramsey/
+│   │   └── uuid/           ← UUID 库源码
+│   ├── phpmailer/
+│   │   └── phpmailer/      ← PHPMailer 源码
+│   └── ...                 ← 包的依赖也在这里
+├── composer.json           ← 声明依赖（你编辑这个）
+├── composer.lock           ← 锁定版本（自动生成，提交到 Git）
+└── index.php               ← require vendor/autoload.php
+</code></pre>
+
+<h3>重要规则</h3>
+<table border="1" cellpadding="8" style="border-collapse:collapse; margin:1rem 0; width:100%">
+    <tr><th>规则</th><th>说明</th></tr>
+    <tr><td>不要手动修改 vendor/</td><td>Composer 管理的文件，更新时会被覆盖</td></tr>
+    <tr><td>vendor/ 加入 .gitignore</td><td>不提交到 Git（H2PHP 已默认配置）</td></tr>
+    <tr><td>composer.lock 要提交</td><td>保证团队成员和服务器安装相同版本</td></tr>
+    <tr><td>用 composer remove 卸载</td><td>不要手动删除 vendor 里的文件夹</td></tr>
+</table>
+
+<h2>加载原理</h2>
+<p>H2PHP 的入口 <code>index.php</code> 包含如下代码：</p>
+<pre><code>// 加载 Composer 自动加载器
+if (file_exists(ROOT . '/vendor/autoload.php')) {
+    require ROOT . '/vendor/autoload.php';
+}
+</code></pre>
+<p>这一行让所有 Composer 包自动可用  。安装后直接 <code>use 类名</code> 即可，无需手动 <code>require</code>。</p>
+
+<h2>部署流程</h2>
+<pre><code># 1. 服务器拉取代码
+git pull
+
+# 2. 安装依赖（根据 composer.lock 精确还原）
+composer install --no-dev
+
+# 3. 完成！所有第三方包自动恢复
+</code></pre>
+<p><code>--no-dev</code> 表示不安装开发依赖（如 PHPUnit），减小生产环境体积。</p>
+
+<h2>常用命令</h2>
+<table border="1" cellpadding="8" style="border-collapse:collapse; margin:1rem 0; width:100%">
+    <tr><th>命令</th><th>作用</th></tr>
+    <tr><td>composer require 包名</td><td>安装新包</td></tr>
+    <tr><td>composer remove 包名</td><td>卸载包</td></tr>
+    <tr><td>composer update</td><td>更新所有包到最新兼容版本</td></tr>
+    <tr><td>composer update 包名</td><td>只更新指定包</td></tr>
+    <tr><td>composer install</td><td>根据 lock 文件安装（部署用）</td></tr>
+    <tr><td>composer show</td><td>列出已安装的所有包</td></tr>
+    <tr><td>composer dump-autoload</td><td>重新生成自动加载文件</td></tr>
+</table>
 
 <h2>实战一：Carbon — 日期时间处理</h2>
 <pre><code># 安装
 composer require nesbot/carbon
 </code></pre>
-<pre><code>// 控制器中使用
-use Carbon\Carbon;
+<pre><code>use Carbon\Carbon;
 
 // 当前时间
-$now = Carbon::now();                    // 2026-02-25 14:30:00
+$now = Carbon::now();
 $now->format('Y年m月d日 H:i');           // 2026年02月25日 14:30
 
 // 相对时间（中文）
@@ -59,7 +110,6 @@ composer require ramsey/uuid
 </code></pre>
 <pre><code>use Ramsey\Uuid\Uuid;
 
-// 生成 UUID v4（随机）
 $uuid = Uuid::uuid4()->toString();
 // "550e8400-e29b-41d4-a716-446655440000"
 
@@ -94,8 +144,7 @@ $mail->setFrom('your@qq.com', 'H2CMS');
 $mail->addAddress('user@example.com', '用户名');
 $mail->isHTML(true);
 $mail->Subject = '欢迎注册';
-$mail->Body    = '&lt;h1&gt;Hi！&lt;/h1&gt;&lt;p&gt;感谢注册 H2CMS。&lt;/p&gt;';
-
+$mail->Body    = '&lt;h1&gt;Hi！&lt;/h1&gt;&lt;p&gt;感谢注册。&lt;/p&gt;';
 $mail->send();
 </code></pre>
 
@@ -123,9 +172,9 @@ Image::make('uploads/banner.jpg')
 </code></pre>
 
 <h2>实战五：Laravel 组件 — 单独使用</h2>
-<p>Laravel 的很多组件是<strong>独立包</strong>，可以脱离 Laravel 在任何项目中使用：</p>
+<p>Laravel 的很多组件是<strong>独立包</strong>，可以脱离 Laravel 在任何 PHP 项目中使用：</p>
 
-<h3>illuminate/support — Collection 集合操作</h3>
+<h3>illuminate/support — Collection 集合</h3>
 <pre><code># 安装
 composer require illuminate/support
 </code></pre>
@@ -136,20 +185,16 @@ $collection = collect($posts);
 
 // 链式操作
 $result = $collection
-    ->where('status', 'published')               // 过滤
-    ->sortByDesc('created_at')                   // 排序
-    ->groupBy('category_id')                     // 分组
-    ->map(function($group) {                      // 转换
-        return $group->count();
-    });
+    ->where('status', 'published')
+    ->sortByDesc('created_at')
+    ->groupBy('category_id')
+    ->map(function($group) { return $group->count(); });
 
 // 聚合
-$collection->sum('views');                        // 总浏览量
-$collection->avg('views');                        // 平均浏览量
-$collection->pluck('title');                      // 提取标题列
-$collection->unique('category_id')->count();      // 分类数
-$collection->take(5);                             // 前5条
-$collection->chunk(10);                           // 每10条分组
+$collection->sum('views');           // 总浏览量
+$collection->pluck('title');         // 提取标题列
+$collection->unique('category_id'); // 去重
+$collection->take(5);               // 前5条
 </code></pre>
 
 <h3>illuminate/validation — 验证器</h3>
@@ -160,14 +205,10 @@ composer require illuminate/validation illuminate/translation
 use Illuminate\Translation\ArrayLoader;
 use Illuminate\Translation\Translator;
 
-$loader     = new ArrayLoader();
-$translator = new Translator($loader, 'zh');
-$factory    = new Factory($translator);
-
-$validator  = $factory->make($_POST, [
+$factory   = new Factory(new Translator(new ArrayLoader(), 'zh'));
+$validator = $factory->make($_POST, [
     'email'    => 'required|email',
     'password' => 'required|min:6|max:20',
-    'name'     => 'required|between:2,20',
 ]);
 
 if ($validator->fails()) {
@@ -175,11 +216,11 @@ if ($validator->fails()) {
 }
 </code></pre>
 
-<h3>其他可单独使用的 Laravel 组件</h3>
-<pre><code>composer require illuminate/cache          # 多驱动缓存
-composer require illuminate/events         # 事件调度
-composer require illuminate/filesystem     # 文件系统
-composer require illuminate/pagination     # 分页
+<h3>其他 Laravel 独立组件</h3>
+<pre><code>composer require illuminate/cache       # 多驱动缓存
+composer require illuminate/events      # 事件调度
+composer require illuminate/filesystem  # 文件系统(S3/本地)
+composer require illuminate/pagination  # 分页
 </code></pre>
 
 <h2>常用第三方包推荐</h2>
@@ -198,34 +239,18 @@ composer require illuminate/pagination     # 分页
     <tr><td>endroid/qr-code</td><td>二维码生成</td><td>composer require endroid/qr-code</td></tr>
 </table>
 
-<h2>原理说明</h2>
-<p>H2PHP 的入口 <code>index.php</code> 包含如下代码：</p>
-<pre><code>// 加载 Composer 自动加载器
-if (file_exists(ROOT . '/vendor/autoload.php')) {
-    require ROOT . '/vendor/autoload.php';
-}
-</code></pre>
-<p>安装任何 Composer 包后，Composer 自动更新 <code>vendor/autoload.php</code>，
-你只需 <code>use 类名</code> 即可使用，无需手动 <code>require</code> 文件。</p>
-
-<h3>H2PHP 内置 vs 第三方包</h3>
+<h2>H2PHP 内置 vs 第三方包</h2>
 <table border="1" cellpadding="8" style="border-collapse:collapse; margin:1rem 0">
     <tr><th></th><th>内置库 (Lib\)</th><th>Composer 包</th></tr>
     <tr><td>安装方式</td><td>框架自带</td><td>composer require</td></tr>
+    <tr><td>存放位置</td><td>lib/ 目录</td><td>vendor/ 目录</td></tr>
     <tr><td>体积</td><td>极小，单文件</td><td>可能较大</td></tr>
     <tr><td>依赖</td><td>零依赖</td><td>可能引入更多依赖</td></tr>
     <tr><td>适合</td><td>轻量项目</td><td>需要专业功能时</td></tr>
+    <tr><td>提交到 Git?</td><td>是，框架一部分</td><td>否，.gitignore 忽略</td></tr>
     <tr><td>共存</td><td colspan="2">完全兼容，可同时使用</td></tr>
 </table>
 HTML;
 
-$exists = $pdo->prepare("SELECT id FROM posts WHERE slug=?");
-$exists->execute([$slug]);
-if ($exists->fetch()) {
-    $pdo->prepare("UPDATE posts SET title=?, body=?, excerpt=? WHERE slug=?")->execute([$title, $body, $excerpt, $slug]);
-    echo "UPDATE: {$title}\n";
-} else {
-    $pdo->prepare("INSERT INTO posts (title, slug, body, excerpt, category_id, user_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, 'published', NOW(), NOW())")->execute([$title, $slug, $body, $excerpt, $catId]);
-    echo "INSERT: {$title}\n";
-}
-echo "Done!\n";
+$pdo->prepare("UPDATE posts SET body=? WHERE slug='tutorial-28-composer'")->execute([$body]);
+echo "Updated!\n";
