@@ -31,7 +31,7 @@ class main extends \Lib\Core
         // 附加分类名
         foreach ($posts as &$p) {
             if ($p['category_id']) {
-                $cat = $this->db->table('categories')->where('id=?', [$p['category_id']])->fetch();
+                $cat = $this->db->table('categories')->where('id=?', [$p['category_id']])->fetchOne();
                 $p['category_name'] = $cat['name'] ?? '-';
             }
         }
@@ -123,7 +123,7 @@ class main extends \Lib\Core
     /** 编辑文章 */
     public function edit(int $id): void
     {
-        $post = $this->db->table('posts')->softDeletes()->withTrashed()->where('id=?', [$id])->fetch();
+        $post = $this->db->table('posts')->softDeletes()->withTrashed()->where('id=?', [$id])->fetchOne();
         if (!$post) $this->abort(404);
 
         $categories = $this->db->table('categories')->order('name')->fetchAll();

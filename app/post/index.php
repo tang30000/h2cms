@@ -6,7 +6,7 @@ class main extends \Lib\Core
 {
     public function view(int $id): void
     {
-        $post = $this->db->table('posts')->softDeletes()->where("id=? AND status='published'", [$id])->fetch();
+        $post = $this->db->table('posts')->softDeletes()->where("id=? AND status='published'", [$id])->fetchOne();
         if (!$post) {
             $this->abort(404, '文章不存在');
         }
@@ -14,7 +14,7 @@ class main extends \Lib\Core
         // 分类
         $category = null;
         if ($post['category_id']) {
-            $category = $this->db->table('categories')->where('id=?', [$post['category_id']])->fetch();
+            $category = $this->db->table('categories')->where('id=?', [$post['category_id']])->fetchOne();
         }
 
         // 评论（只显示已审核的）

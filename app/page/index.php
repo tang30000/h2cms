@@ -1,14 +1,14 @@
 <?php
 /**
- * 静态页面
+ * 静态页�?
  */
 class main extends \Lib\Core
 {
     public function view(string $slug): void
     {
-        $page = $this->db->table('pages')->where("slug=? AND status='published'", [$slug])->fetch();
+        $page = $this->db->table('pages')->where("slug=? AND status='published'", [$slug])->fetchOne();
         if (!$page) {
-            $this->abort(404, '页面不存在');
+            $this->abort(404, '页面不存�?);
         }
 
         $this->layout('front');

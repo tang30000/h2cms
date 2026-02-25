@@ -38,7 +38,7 @@ class main extends \Lib\Core
         // 获取每篇文章的分类名
         foreach ($posts as &$p) {
             if ($p['category_id']) {
-                $cat = $this->db->table('categories')->where('id=?', [$p['category_id']])->cache(300)->fetch();
+                $cat = $this->db->table('categories')->where('id=?', [$p['category_id']])->cache(300)->fetchOne();
                 $p['category_name'] = $cat['name'] ?? '';
             }
         }

@@ -37,7 +37,7 @@ class main extends \Lib\Core
 
     public function edit(int $id): void
     {
-        $page = $this->db->table('pages')->where('id=?', [$id])->fetch();
+        $page = $this->db->table('pages')->where('id=?', [$id])->fetchOne();
         if (!$page) $this->abort(404);
         $this->layout('admin');
         $this->setMulti(['pageTitle' => '编辑页面', '_path' => 'admin/pages', 'pageData' => $page, 'csrfField' => $this->csrfField()]);

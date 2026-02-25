@@ -44,7 +44,7 @@ class main extends \Lib\Core
             return;
         }
 
-        $user = $this->db->table('users')->where('username=?', [$_POST['username']])->fetch();
+        $user = $this->db->table('users')->where('username=?', [$_POST['username']])->fetchOne();
 
         // 使用 Auth::verifyPassword() 替代手写 password_verify
         if (!$user || !Auth::verifyPassword($_POST['password'], $user['password'])) {

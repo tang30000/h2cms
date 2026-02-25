@@ -8,7 +8,7 @@ class main extends \Lib\Core
         $comments = $this->db->table('comments')->order('created_at DESC')->fetchAll();
         // 附加文章标题
         foreach ($comments as &$c) {
-            $post = $this->db->table('posts')->where('id=?', [$c['post_id']])->fetch();
+            $post = $this->db->table('posts')->where('id=?', [$c['post_id']])->fetchOne();
             $c['post_title'] = $post['title'] ?? '(已删除)';
         }
         unset($c);
